@@ -108,6 +108,7 @@ int main(int argc, char *argv[])
     else
     {
       seq_num = atoi(snum);
+      if(seq_num == -1){}
       printf("Receiving Packet: %d\n",seq_num);
     }
    
@@ -132,13 +133,17 @@ int main(int argc, char *argv[])
     memset(snum,0,sizeof(snum));  //  Clear snum for the next seq number
   }  
     
-  for(i=0;i<total_number_packs;i++)
-  {
-   // printf("this is the seq num: %d\nthis is the message: %s\n ",i,message[i]);
-  }
   printf("\nFile Transfer is complete!\n");
   printf("Received %d out of %d packets. Success!\n",total_number_packs,total_number_packs);
   close(s);
+
+  FILE *output;
+  output = fopen("recv_file","w");
+  for(i=0;i<total_number_packs;i++)
+  {
+    fputs(message[i],output);
+  }
+  fclose(output);
   return 0;
 }
 

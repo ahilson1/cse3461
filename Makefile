@@ -5,4 +5,4 @@ all:
 	gcc client.c -o client
 
 clean:
-	rm server client
+	rm server client recv_file

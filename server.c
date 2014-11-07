@@ -3,8 +3,7 @@
 #include <stdlib.h> //exit(0);
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <pthread.h>
- 
+
 #define BUFLEN 512  //Max length of buffer
 
 
@@ -57,10 +56,20 @@ void make_packs(FILE * input,pack_t *array_of_packs[1000])
 int main(int argc, char *argv[])
 {
   int port = atoi(argv[1]);
-    
+  float loss;
+  int RDT = 0;
+  int end;
+  if(argc >= 3)
+  {
+    sscanf(argv[2], "%f",&loss);
+  }
+  if(argc == 4) 
+  {
+    RDT = 1;
+  }    
   struct sockaddr_in si_me, si_other;
      
-  int s,temp, i,a,slen = sizeof(si_other) , recv_len, number_of_packets;
+  int s, temp, i, a, slen = sizeof(si_other) , recv_len, number_of_packets;
   int the_seq_num, the_total_num_pack;
   char buf[BUFLEN];
   char snum[10];
@@ -119,8 +128,16 @@ int main(int argc, char *argv[])
     {
       strcpy(buf,"404 That file could not be found.");
     }
-             
-    for(a=3;a<number_of_packets;a++)
+    if(argc >=3)
+    {
+      end =(int)(number_of_packets*loss);
+      end = number_of_packets-end; 
+    }
+    else
+    {
+      end = number_of_packets;
+    }
+    for(a=0;a<end;a++)
     {
       the_total_num_pack = array_of_packs[a] -> total_num_pack;
       the_seq_num = array_of_packs[a] -> seq_num;
@@ -162,48 +179,51 @@ int main(int argc, char *argv[])
       memset(buf,0,sizeof(buf));  //  clear buf for more data  
       memset(snum,0,sizeof(snum));  // clear snum for the next seq number
     }
-    /* CHECK THE ARRAY OF ACKS TO SEE IF WE NEED TO RESEND A PACKET */
-    for(i=0;i<the_total_num_pack;i++)
-    {
-      if(strcmp(array_of_ack[i],"ack"))
-      {
-        strcpy(buf,array_of_packs[i] -> data);
-        snprintf(snum,sizeof(snum),"%d",i);
-
-        printf("\nPacket: %d was lost...\n",i);
-        //  Resend the sequence number to the receiver
-        if (sendto(s, snum, strlen(snum), 0, (struct sockaddr*) &si_other, slen) == -1) 
-        {   
-          die("sendto()");
-        }   
-        else
-        {   
-          printf("Resending Packet: %d\n",i);
-        }   
     
-        //  Resend the data to the receiver      
-        if (sendto(s, buf, strlen(buf), 0, (struct sockaddr*) &si_other, slen) == -1) 
-        {   
-          die("sendto()");
-        }   
-        else
-        {   
-          printf("Sending Data for Packet: %d\n",i); 
-        }   
-
-        //  Wait for an ack from receiver
-        if ((recv_len = recvfrom(s, the_ack, strlen(the_ack), 0, (struct sockaddr *) &si_other, &slen)) == -1)
+    /* CHECK THE ARRAY OF ACKS TO SEE IF WE NEED TO RESEND A PACKET */
+    if(RDT == 1)
+    {
+      for(i=0;i<the_total_num_pack;i++)
+      {
+        if(strcmp(array_of_ack[i],"ack"))
         {
-          die("recvfrom()");
-        }   
-        else
-        {   
-          temp = atoi(snum);
-          strcpy(array_of_ack[temp],"ack");
+          strcpy(buf,array_of_packs[i] -> data);
+          snprintf(snum,sizeof(snum),"%d",i);
+
+          printf("\nPacket: %d was lost...\n",i);
+          //  Resend the sequence number to the receiver
+          if (sendto(s, snum, strlen(snum), 0, (struct sockaddr*) &si_other, slen) == -1) 
+          {   
+            die("sendto()");
+          }   
+          else
+          {   
+            printf("Resending Packet: %d\n",i);
+          }   
+    
+          //  Resend the data to the receiver      
+          if (sendto(s, buf, strlen(buf), 0, (struct sockaddr*) &si_other, slen) == -1) 
+          {   
+            die("sendto()");
+          }   
+          else
+          {   
+            printf("Sending Data for Packet: %d\n",i); 
+          }   
+
+          //  Wait for an ack from receiver
+          if ((recv_len = recvfrom(s, the_ack, strlen(the_ack), 0, (struct sockaddr *) &si_other, &slen)) == -1)
+          {
+            die("recvfrom()");
+          }   
+          else
+          {   
+            temp = atoi(snum);
+            strcpy(array_of_ack[temp],"ack");
+          }
+          memset(buf,0,sizeof(buf));  //  clear buf for more data  
+          memset(snum,0,sizeof(snum));  // clear snum for the next seq number    
         }
-        memset(buf,0,sizeof(buf));  //  clear buf for more data  
-        memset(snum,0,sizeof(snum));  // clear snum for the next seq number    
-      
       }
     }
     printf("\nDone Transmiting Data!\n");
