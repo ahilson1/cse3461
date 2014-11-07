@@ -4,14 +4,14 @@
 #include<arpa/inet.h>
 #include<sys/socket.h>
  
-#define address "127.0.0.1"
-#define BUFLEN 512  //Max length of buffer
-
+// address "127.0.0.1"
+#define BUFLEN 2000  //Max length of buffer
+#define ADDRESS_LENGTH 15
 
 
 /* Global */
 char message[1000][BUFLEN];
-
+int total_number_packs;
 void init_message()
 {
   int i;    
@@ -21,18 +21,28 @@ void init_message()
   } 
 } 
 
-int check_message(int total_num)
+void check_message(int total_num)
 {
-  int flag = 1;
   int i;
+  int num_loss = 0;
   for(i=0;i<total_num;i++)
   {
-    if(strcmp(message[i],"empty"))
+    if(!strcmp(message[i],"empty"))
     {
-      flag = 0; //  False our message is not done sending
+      num_loss++;
     }
   }
-  return flag;
+  if(num_loss==0)
+  {
+    printf("\nFile Transfer is complete!\n");
+    printf("Received %d out of %d packets. Success!\n",total_number_packs,total_number_packs);
+  }
+  else
+  {
+    printf("\nFile Transfer is complete!\n");
+    num_loss = total_number_packs - num_loss;
+    printf("Received %d out of %d packets. Fail!\n",num_loss,total_number_packs);
+  }
 }
 
 void die(char *s)
@@ -53,18 +63,18 @@ int main(int argc, char *argv[])
   init_message();
 
   //declare and grab all command line arguments
-  //  char address[BUFLEN];
+  char address[ADDRESS_LENGTH];
   int port;
   char file_name[BUFLEN];
   
-//  strcpy(address,argv[1]);
+  strcpy(address,argv[1]);
   port = atoi(argv[2]);
   strcpy(file_name, argv[3]);
 
   struct sockaddr_in si_other;
   int s, i, slen=sizeof(si_other);
   char buf[BUFLEN];
-  int total_number_packs, seq_num;  
+  int seq_num;  
   char snum[10];  
 
   if ( (s=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
@@ -105,6 +115,10 @@ int main(int argc, char *argv[])
       printf("Packet Lost\n");
       die("recvfrom()");
     }
+    else if(!strcmp(snum,"fin"))
+    {
+      break;
+    }
     else
     {
       seq_num = atoi(snum);
@@ -133,14 +147,14 @@ int main(int argc, char *argv[])
     memset(snum,0,sizeof(snum));  //  Clear snum for the next seq number
   }  
     
-  printf("\nFile Transfer is complete!\n");
-  printf("Received %d out of %d packets. Success!\n",total_number_packs,total_number_packs);
+  check_message(total_number_packs);
   close(s);
 
   FILE *output;
   output = fopen("recv_file","w");
   for(i=0;i<total_number_packs;i++)
   {
+    
     fputs(message[i],output);
   }
   fclose(output);

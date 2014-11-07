@@ -4,7 +4,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#define BUFLEN 512  //Max length of buffer
+#define BUFLEN 2000  //Max length of buffer
 
 
  
@@ -138,8 +138,7 @@ int main(int argc, char *argv[])
       end = number_of_packets;
     }
     for(a=0;a<end;a++)
-    {
-      the_total_num_pack = array_of_packs[a] -> total_num_pack;
+    { 
       the_seq_num = array_of_packs[a] -> seq_num;
 
       strcpy(buf,array_of_packs[a] -> data);
@@ -182,8 +181,8 @@ int main(int argc, char *argv[])
     
     /* CHECK THE ARRAY OF ACKS TO SEE IF WE NEED TO RESEND A PACKET */
     if(RDT == 1)
-    {
-      for(i=0;i<the_total_num_pack;i++)
+    { 
+      for(i=0;i<number_of_packets;i++)
       {
         if(strcmp(array_of_ack[i],"ack"))
         {
@@ -226,9 +225,15 @@ int main(int argc, char *argv[])
         }
       }
     }
+    
+    //  Send Fin to the receiver
+    if (sendto(s, "fin", strlen("fin"), 0, (struct sockaddr*) &si_other, slen) == -1) 
+    {
+      die("sendto()");
+    }
+
     printf("\nDone Transmiting Data!\n");
   }
- 
   close(s);
   return 0;
 }
