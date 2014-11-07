@@ -1,8 +1,9 @@
-#include <stdio.h> //printf
-#include <string.h> //memset
-#include <stdlib.h> //exit(0);
+#include <stdio.h> 
+#include <string.h> 
+#include <stdlib.h> 
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 #define BUFLEN 2000  //Max length of buffer
 
@@ -68,7 +69,7 @@ int main(int argc, char *argv[])
     RDT = 1;
   }    
   struct sockaddr_in si_me, si_other;
-     
+  struct timeval start_time,end_time,time_diff;  //  Used to check for timeout
   int s, temp, i, a, slen = sizeof(si_other) , recv_len, number_of_packets;
   int the_seq_num, the_total_num_pack;
   char buf[BUFLEN];
@@ -163,18 +164,25 @@ int main(int argc, char *argv[])
       {
          printf("Sending Data for Packet: %d\n",the_seq_num); 
       }
-
-      //  Wait for an ack from receiver
-      if ((recv_len = recvfrom(s, the_ack, strlen(the_ack), 0, (struct sockaddr *) &si_other, &slen)) == -1)
+      
+      gettimeofday(&start_time,NULL);  //  Get the start time
+        //  Wait for an ack from receiver
+        if ((recv_len = recvfrom(s, the_ack, strlen(the_ack), 0, (struct sockaddr *) &si_other, &slen)) == -1)
+        {
+          die("recvfrom()");
+        }
+        else
+        {
+          temp = atoi(snum);
+          strcpy(array_of_ack[temp],"ack");
+        }        
+      gettimeofday(&end_time,NULL);  //  Get the end time
+      time_diff.tv_usec = end_time.tv_usec-start_time.tv_usec;
+      if(time_diff.tv_usec > 5000)
       {
-        die("recvfrom()");
+        die("timeout");
       }
-      else
-      {
-        temp = atoi(snum);
-        strcpy(array_of_ack[temp],"ack");
-      }        
-     
+
       memset(buf,0,sizeof(buf));  //  clear buf for more data  
       memset(snum,0,sizeof(snum));  // clear snum for the next seq number
     }
