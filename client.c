@@ -102,6 +102,7 @@ int main(int argc, char *argv[])
     // Get the sequence number of the packet from the server
     if (recvfrom(s, snum, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1) 
     {
+      printf("Packet Lost\n");
       die("recvfrom()");
     }
     else
@@ -113,6 +114,7 @@ int main(int argc, char *argv[])
     // Get the data from the server
     if (recvfrom(s, buf, BUFLEN, 0, (struct sockaddr *) &si_other, &slen) == -1) 
     {
+      printf("Packet Lost\n");
       die("recvfrom()");
     }
     else
@@ -120,16 +122,22 @@ int main(int argc, char *argv[])
       printf("Receiving Data for Packet: %d\n",seq_num);
       strcpy(message[seq_num],buf);
     }
-    
+    //send the ack to the server
+    if (sendto(s, "ack", strlen("ack") , 0 , (struct sockaddr *) &si_other, slen)==-1)
+    {
+      die("sendto()");
+    }
+  
     memset(buf,0,sizeof(buf));  //  Clear buf for the next data
     memset(snum,0,sizeof(snum));  //  Clear snum for the next seq number
   }  
-
+    
   for(i=0;i<total_number_packs;i++)
   {
-    printf("this is the seq num: %d\nthis is the message: %s\n ",i,message[i]);
+   // printf("this is the seq num: %d\nthis is the message: %s\n ",i,message[i]);
   }
-  printf("File Transfer is complete!\n");
+  printf("\nFile Transfer is complete!\n");
+  printf("Received %d out of %d packets. Success!\n",total_number_packs,total_number_packs);
   close(s);
   return 0;
 }
