@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
           }   
           else
           {   
-            printf("Sending Data for Packet: %d\n",i); 
+            printf("Resending Data for Packet: %d\n",i); 
           }   
 
           //  Wait for an ack from receiver
